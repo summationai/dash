@@ -13,7 +13,7 @@ from pathlib import Path
 
 from agno.os import AgentOS
 
-from dash.agents import dash, reasoning_dash, dash_knowledge
+from dash.agents import dash, dash_knowledge, reasoning_dash
 from db import get_postgres_db
 
 # ============================================================================
