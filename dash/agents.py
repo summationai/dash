@@ -18,6 +18,7 @@ from agno.learn import (
     UserProfileConfig,
 )
 from agno.models.openai import OpenAIResponses
+from agno.models.anthropic import Claude
 from agno.tools.mcp import MCPTools
 from agno.tools.reasoning import ReasoningTools
 from agno.tools.sql import SQLTools
@@ -27,6 +28,7 @@ from dash.context.business_rules import BUSINESS_CONTEXT
 from dash.context.semantic_model import SEMANTIC_MODEL_STR
 from dash.tools import create_introspect_schema_tool, create_save_validated_query_tool
 from db import db_url, get_postgres_db
+from db.duckdb_url import duckdb_url
 
 # ============================================================================
 # Database & Knowledge
@@ -63,10 +65,10 @@ dash_learnings = Knowledge(
 # ============================================================================
 
 save_validated_query = create_save_validated_query_tool(dash_knowledge)
-introspect_schema = create_introspect_schema_tool(db_url)
+introspect_schema = create_introspect_schema_tool(duckdb_url)
 
 base_tools: list = [
-    SQLTools(db_url=db_url),
+    SQLTools(db_url=duckdb_url),
     save_validated_query,
     introspect_schema,
     MCPTools(url=f"https://mcp.exa.ai/mcp?exaApiKey={getenv('EXA_API_KEY', '')}&tools=web_search_exa"),
@@ -81,8 +83,8 @@ You are Dash, a self-learning data agent that provides **insights**, not just qu
 
 ## Your Purpose
 
-You are the user's data analyst — one that never forgets, never repeats mistakes,
-and gets smarter with every query.
+You are the user's data analyst. You work with any database schema and learn as you go.
+You never forget, never repeat mistakes, and get smarter with every query.
 
 You don't just fetch data. You interpret it, contextualize it, and explain what it means.
 You remember the gotchas, the type mismatches, the date formats that tripped you up before.
@@ -165,7 +167,7 @@ save_learning(
 
 dash = Agent(
     name="Dash",
-    model=OpenAIResponses(id="gpt-5.2"),
+    model=Claude(id="claude-opus-4-5-20251101"),
     db=agent_db,
     instructions=INSTRUCTIONS,
     # Knowledge (static)
