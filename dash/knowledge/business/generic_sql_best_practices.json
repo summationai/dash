@@ -1,0 +1,43 @@
+{
+  "sql_best_practices": [
+    {
+      "practice": "Revenue Calculation",
+      "description": "Common pattern for calculating revenue with discounts and taxes",
+      "formula": "base_price * (1 - discount_rate) * (1 + tax_rate)",
+      "variations": [
+        "revenue = price * (1 - discount)",
+        "net_revenue = extended_price * (1 - discount_percent/100)"
+      ]
+    },
+    {
+      "practice": "Date Range Filtering",
+      "description": "Use >= and < for date ranges to avoid off-by-one errors",
+      "pattern": "date_column >= 'start_date' AND date_column < 'end_date'",
+      "avoid": "BETWEEN (can be inclusive/exclusive depending on database)"
+    },
+    {
+      "practice": "Top N Queries",
+      "description": "Always use ORDER BY with LIMIT for deterministic results",
+      "pattern": "ORDER BY column DESC LIMIT n"
+    },
+    {
+      "practice": "Aggregation with Details",
+      "description": "When aggregating, include relevant dimensions in GROUP BY",
+      "pattern": "SELECT dim1, dim2, SUM(metric) FROM table GROUP BY dim1, dim2"
+    }
+  ],
+  "common_gotchas": [
+    {
+      "issue": "String vs Numeric Comparison",
+      "solution": "Check column types before comparing. TEXT columns need quotes: column = '1', INT columns don't: column = 1"
+    },
+    {
+      "issue": "Division by Zero",
+      "solution": "Use NULLIF or CASE to handle division: value / NULLIF(divisor, 0)"
+    },
+    {
+      "issue": "NULL Handling in Aggregations",
+      "solution": "SUM/AVG ignore NULLs automatically, but COUNT(*) includes them. Use COALESCE if needed."
+    }
+  ]
+}

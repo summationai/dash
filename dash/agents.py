@@ -18,6 +18,7 @@ from agno.learn import (
     UserProfileConfig,
 )
 from agno.models.openai import OpenAIResponses
+from agno.models.anthropic import Claude
 from agno.tools.mcp import MCPTools
 from agno.tools.reasoning import ReasoningTools
 from agno.tools.sql import SQLTools
@@ -25,8 +26,14 @@ from agno.vectordb.pgvector import PgVector, SearchType
 
 from dash.context.business_rules import BUSINESS_CONTEXT
 from dash.context.semantic_model import SEMANTIC_MODEL_STR
-from dash.tools import create_introspect_schema_tool, create_save_validated_query_tool
+from dash.tools import (
+    create_export_to_excel_tool,
+    create_introspect_schema_tool,
+    create_save_learning_tool,
+    create_save_validated_query_tool,
+)
 from db import db_url, get_postgres_db
+from db.duckdb_url import duckdb_url
 
 # ============================================================================
 # Database & Knowledge
@@ -63,12 +70,16 @@ dash_learnings = Knowledge(
 # ============================================================================
 
 save_validated_query = create_save_validated_query_tool(dash_knowledge)
-introspect_schema = create_introspect_schema_tool(db_url)
+save_learning = create_save_learning_tool(dash_learnings)
+introspect_schema = create_introspect_schema_tool(duckdb_url)
+export_to_excel = create_export_to_excel_tool(duckdb_url)
 
 base_tools: list = [
-    SQLTools(db_url=db_url),
+    SQLTools(db_url=duckdb_url),
     save_validated_query,
+    save_learning,
     introspect_schema,
+    export_to_excel,
     MCPTools(url=f"https://mcp.exa.ai/mcp?exaApiKey={getenv('EXA_API_KEY', '')}&tools=web_search_exa"),
 ]
 
@@ -81,8 +92,8 @@ You are Dash, a self-learning data agent that provides **insights**, not just qu
 
 ## Your Purpose
 
-You are the user's data analyst — one that never forgets, never repeats mistakes,
-and gets smarter with every query.
+You are the user's data analyst. You work with any database schema and learn as you go.
+You never forget, never repeat mistakes, and get smarter with every query.
 
 You don't just fetch data. You interpret it, contextualize it, and explain what it means.
 You remember the gotchas, the type mismatches, the date formats that tripped you up before.
@@ -105,11 +116,14 @@ Your goal: make the user look like they've been working with this data for years
 
 1. Always start with `search_knowledge_base` and `search_learnings` for table info, patterns, gotchas. Context that will help you write the best possible SQL.
 2. Write SQL (LIMIT 50, no SELECT *, ORDER BY for rankings)
-3. If error → `introspect_schema` → fix → `save_learning`
+3. If error → `introspect_schema` → fix → **MUST call `save_learning`**
 4. Provide **insights**, not just data, based on the context you found.
 5. Offer `save_validated_query` if the query is reusable.
 
-## When to save_learning
+## MANDATORY: When to save_learning
+
+**You MUST call `save_learning` whenever you discover something new.** This is not optional.
+The tool verifies persistence — if it reports an error, retry or report it to the user.
 
 After fixing a type error:
 ```
@@ -135,12 +149,22 @@ save_learning(
 )
 ```
 
+**Save learnings for:** type mismatches, date format quirks, column semantics,
+join conditions that worked, user corrections, query patterns that failed, schema surprises.
+If in doubt, save it. Future-you will thank present-you.
+
 ## Insights, Not Just Data
 
 | Bad | Good |
 |-----|------|
 | "Hamilton: 11 wins" | "Hamilton won 11 of 21 races (52%) — 7 more than Bottas" |
 | "Schumacher: 7 titles" | "Schumacher's 7 titles stood for 15 years until Hamilton matched it" |
+
+## Excel Export
+
+When results are tabular and useful as a spreadsheet, offer `export_to_excel`.
+The tool generates a professionally formatted `.xlsx` with headers, number formats,
+freeze panes, and auto-filters. Pass the same SQL query and a descriptive title.
 
 ## SQL Rules
 
@@ -165,7 +189,7 @@ save_learning(
 
 dash = Agent(
     name="Dash",
-    model=OpenAIResponses(id="gpt-5.2"),
+    model=Claude(id="claude-opus-4-5-20251101"),
     db=agent_db,
     instructions=INSTRUCTIONS,
     # Knowledge (static)
@@ -173,10 +197,11 @@ dash = Agent(
     search_knowledge=True,
     # Learning (provides search_learnings, save_learning, user profile, user memory)
     learning=LearningMachine(
+        model=Claude(id="claude-sonnet-4-5-20250929"),
         knowledge=dash_learnings,
         user_profile=UserProfileConfig(mode=LearningMode.AGENTIC),
         user_memory=UserMemoryConfig(mode=LearningMode.AGENTIC),
-        learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.AGENTIC),
+        learned_knowledge=LearnedKnowledgeConfig(mode=LearningMode.ALWAYS),
     ),
     tools=base_tools,
     # Context

@@ -1,0 +1,53 @@
+-- <query name>basic_aggregation</query name>
+-- <query description>
+-- Basic aggregation pattern with grouping
+-- </query description>
+-- <query>
+-- Generic pattern for aggregating metrics by dimensions
+-- SELECT
+--     dimension_column,
+--     COUNT(*) as count,
+--     SUM(metric_column) as total,
+--     AVG(metric_column) as average
+-- FROM table_name
+-- GROUP BY dimension_column
+-- ORDER BY total DESC
+-- LIMIT 10
+-- </query>
+
+
+-- <query name>multi_table_join</query name>
+-- <query description>
+-- Pattern for joining multiple tables with proper foreign keys
+-- </query description>
+-- <query>
+-- Generic pattern for multi-table joins
+-- SELECT
+--     t1.id,
+--     t1.name,
+--     t2.related_field,
+--     COUNT(t3.detail_id) as detail_count
+-- FROM main_table t1
+-- JOIN related_table t2 ON t1.foreign_key = t2.primary_key
+-- LEFT JOIN detail_table t3 ON t2.id = t3.foreign_key
+-- GROUP BY t1.id, t1.name, t2.related_field
+-- ORDER BY detail_count DESC
+-- </query>
+
+
+-- <query name>date_range_analysis</query name>
+-- <query description>
+-- Pattern for analyzing data over date ranges
+-- </query description>
+-- <query>
+-- Generic pattern for date-based analysis
+-- SELECT
+--     EXTRACT(YEAR FROM date_column) as year,
+--     COUNT(*) as count,
+--     SUM(amount_column) as total_amount
+-- FROM table_name
+-- WHERE date_column >= 'start_date'
+--   AND date_column < 'end_date'
+-- GROUP BY EXTRACT(YEAR FROM date_column)
+-- ORDER BY year
+-- </query>
